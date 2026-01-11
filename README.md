@@ -1,8 +1,19 @@
+
+<img width="1505" height="467" alt="Banner" src="https://github.com/user-attachments/assets/05fae78d-d46c-4a22-b706-20ce77d6fb74" />
+
+---
 # Ollama LAN AI Gateway
 
 **Authenticated, Audited, Rate-Limited API for Local LLMs (On-Prem)**
 
----
+![Status](https://img.shields.io/badge/status-active-success)
+![Deployment](https://img.shields.io/badge/deployment-on--premise-critical)
+![Privacy](https://img.shields.io/badge/privacy-local--only-important)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Ollama](https://img.shields.io/badge/LLM-Ollama-black)
+![Auth](https://img.shields.io/badge/auth-user--based-green)
+![Rate Limit](https://img.shields.io/badge/rate--limit-enabled-yellow)
+![Audit Logs](https://img.shields.io/badge/audit-logged-blueviolet)
 
 ## 1. Why This Project Exists
 

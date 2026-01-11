@@ -360,12 +360,156 @@ Planned enhancements:
 
 1. Admin-editable per-user rate limits
 2. Authenticated model discovery API
-3. Hybrid provider routing
+3. Hybrid provider routing (local + cloud)
 4. Usage metrics & observability dashboard
 
 ---
 
-## 18. Final Notes
+## 18. Capacity, Limits & Operational Expectations (Important)
+
+This project is intentionally designed as a **lightweight governance and control layer** for local and hybrid LLM usage.
+It is **not** a high-throughput inference platform or a public multi-tenant service.
+
+The following limits and expectations are provided to ensure **correct usage, stability, and realistic planning**.
+
+---
+
+### 18.1 Intended Usage Profile
+
+This gateway is best suited for:
+
+* Small to mid-sized teams (research, AI/ML, CV, DevOps)
+* Shared on-prem GPU environments
+* Automation pipelines requiring **auditability and safety**
+* Privacy-first or offline-first deployments
+
+It is **not intended** for:
+
+* High-bandwidth public APIs
+* Large-scale SaaS inference
+* Unbounded concurrency workloads
+* Multi-region or HA inference clusters
+
+---
+
+### 18.2 Tested & Practical Capacity (Realistic Numbers)
+
+These numbers reflect **safe operating ranges**, not theoretical maximums.
+
+#### User Scale
+
+| Metric                  | Supported Range |
+| ----------------------- | --------------- |
+| Active users            | 5 – 20          |
+| Concurrent active users | 2 – 5           |
+| Admin users             | 1 – 2           |
+
+Inference capacity, not the gateway, becomes the bottleneck beyond this.
+
+---
+
+#### Request Rate
+
+| Metric                    | Value                           |
+| ------------------------- | ------------------------------- |
+| Default rate limit        | **10 requests / minute / user** |
+| Aggregate safe throughput | ~50–200 requests / minute       |
+| Enforcement point         | Gateway                         |
+
+If exceeded, HTTP `429` is returned to protect system stability.
+
+---
+
+### 18.3 Concurrency Model
+
+| Layer        | Constraint                       |
+| ------------ | -------------------------------- |
+| Gateway      | Async, handles many HTTP clients |
+| SQLite (WAL) | Single writer, many readers      |
+| Ollama       | GPU-bound, model dependent       |
+
+Requests may queue naturally; rate limiting prevents cascading failures.
+
+---
+
+### 18.4 Token Length & Prompt Size
+
+* Token limits are enforced by the model (not the gateway)
+* Recommended usage:
+
+| Prompt Type        | Suggested Limit |
+| ------------------ | --------------- |
+| Automation prompts | <1k tokens      |
+| Analysis tasks     | 2k–4k tokens    |
+| Large context      | Use sparingly   |
+
+Excessive prompts can monopolize GPU time.
+
+---
+
+### 18.5 Multimodal (Images, Attachments)
+
+If using models like LLaVA:
+
+| Factor             | Practical Limit |
+| ------------------ | --------------- |
+| Images per request | 1               |
+| Image size         | <5 MB           |
+| Concurrent users   | 1–2             |
+
+Multimodal inference is significantly more resource-intensive.
+
+---
+
+### 18.6 Logging & Storage
+
+Each request logs:
+
+* User identity
+* Prompt
+* Model response
+* Timestamp
+
+| Component    | Notes                      |
+| ------------ | -------------------------- |
+| SQLite (WAL) | Safe for concurrent access |
+| Growth       | Linear with usage          |
+| CSV export   | Mandatory before deletion  |
+
+Avoid network-mounted filesystems for the DB.
+
+---
+
+### 18.7 Known Constraints (By Design)
+
+This gateway does **not attempt** to handle:
+
+| Scenario                     | Outcome               |
+| ---------------------------- | --------------------- |
+| Hundreds of concurrent users | Inference starvation  |
+| Public traffic               | Rate-limited / denied |
+| Large file uploads           | GPU contention        |
+| Unbounded token use          | Latency spikes        |
+
+These are deliberate design boundaries.
+
+---
+
+### 18.8 Positioning vs Large-Scale Platforms
+
+| Aspect      | This Gateway   | SaaS Platforms |
+| ----------- | -------------- | -------------- |
+| Privacy     | Full (on-prem) | Partial        |
+| Audit depth | Full           | Limited        |
+| Cost        | Hardware-only  | Usage-based    |
+| Scale       | Limited        | Very high      |
+| Control     | Full           | Partial        |
+
+This system optimizes for **control and accountability**, not raw throughput.
+
+---
+
+## 19. Final Notes
 
 This is not a cloud LLM platform.
 It is not a UI replacement.
@@ -376,3 +520,4 @@ Built because it was needed.
 Shared because others face the same problem.
 
 ---
+

@@ -3,58 +3,72 @@
 ---
 # Ollama LAN AI Gateway
 
-**Authenticated, Audited, Rate-Limited API for Local LLMs (On-Prem)**
+**Authenticated, Audited, Rate-Limited API Gateway for Local LLMs (On-Prem, Privacy-First)**
 
 ![Status](https://img.shields.io/badge/status-active-success)
 ![Deployment](https://img.shields.io/badge/deployment-on--premise-critical)
 ![Privacy](https://img.shields.io/badge/privacy-local--only-important)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Ollama](https://img.shields.io/badge/LLM-Ollama-black)
+![LLM](https://img.shields.io/badge/LLM-Ollama-black)
 ![Auth](https://img.shields.io/badge/auth-user--based-green)
 ![Rate Limit](https://img.shields.io/badge/rate--limit-enabled-yellow)
 ![Audit Logs](https://img.shields.io/badge/audit-logged-blueviolet)
 
 ---
 
-## 1. Why This Project Exists
+## 1. Why This Project Exists (The Real Story)
 
-This project was built to solve a **real in-house operational problem** encountered while working with AI/ML, Computer Vision, DevOps automation, and research workflows.
+This project was built to solve a **real in-house operational problem**, not as a demo or abstraction exercise.
 
-Teams were increasingly using:
+As teams increasingly adopted AI/ML, Computer Vision, DevOps automation, and research workflows, the usage pattern evolved rapidly:
 
-- Free-tier cloud LLM APIs (privacy, cost, rate limits)
-- Local LLMs via Ollama for offline validation
-- Open WebUI for human interaction
-- Automation tools (n8n, scripts, CI jobs) that **cannot safely rely on GUIs**
+- Local LLMs (via Ollama) for offline validation and privacy-sensitive work
+- Open WebUI for human interaction and exploration
+- Automation tools (n8n, scripts, CI jobs) that **cannot depend on GUIs**
+- Occasional use of cloud LLM APIs with privacy and cost constraints
 
-While Ollama is an excellent local inference engine, it is **not designed** for:
+While Ollama is an excellent **local inference engine**, it is intentionally **not designed** for:
 
 - Multi-user access
-- Authentication
+- Authentication or user isolation
 - Rate limiting
 - Audit logging
 - Automation safety
+- Governance or accountability
 
-At one point, a single automation pipeline overwhelmed the local inference system, impacting other users. There was **no visibility** into who sent what, when, or why.
+At one point, a single automation pipeline overwhelmed the local inference host.
+There was **no visibility** into:
+- Who sent the requests
+- Which pipeline caused the issue
+- How frequently the system was being used
+- Whether misuse or misconfiguration occurred
 
-This gateway was built as a **lightweight, production-safe middleware** to:
+The system recovered—but the problem was clear.
 
-- Protect the inference host
-- Isolate users
-- Enable automation
-- Provide auditability
+This gateway was built as a **lightweight, production-safe control layer** to:
+
+- Protect the core inference engine
+- Isolate users and automation pipelines
+- Enable safe API-based access
+- Provide auditability and traceability
 - Preserve privacy and offline operation
+- Avoid touching or destabilizing the inference stack itself
 
 ---
 
 ## 2. Design Philosophy
 
+This project follows a **governance-first, minimal-footprint philosophy**:
+
 - Ollama remains **localhost-only**
-- Users never access the inference API directly
+- Users never interact with the inference engine directly
 - All access is authenticated and logged
 - Rate limits protect system stability
-- Minimal footprint, no system pollution
-- Automation-first, UI-optional
+- UI exists only for governance, not inference
+- Automation is a first-class use case
+- The gateway is intentionally lightweight
+- No system Python pollution
+- Clean isolation under `/opt`
 
 ---
 
@@ -73,8 +87,8 @@ flowchart LR
 
     subgraph LAN["LAN / Team / Automation"]
         USERS["Human Users"]
-        SCRIPTS["Scripts"]
-        N8N["n8n"]
+        SCRIPTS["Scripts (Python / Bash / PowerShell)"]
+        N8N["n8n Workflows"]
         PIPE["AI / ML / CV Pipelines"]
     end
 
@@ -86,9 +100,9 @@ flowchart LR
 
 ---
 
-## 4. Core Security Boundary (Important)
+## 4. Core Security Boundary (Critical)
 
-**The gateway must run on the same machine as Ollama.**
+**The gateway must be installed on the same machine where Ollama is running.**
 
 * Ollama listens only on:
 
@@ -97,41 +111,43 @@ flowchart LR
   ```
 * Ollama is never exposed over LAN
 * All external access is mediated by the gateway
+* Users cannot bypass authentication or rate limits
 
-This boundary is intentional and enforced.
+This boundary is **intentional and enforced by design**.
 
 ---
 
 ## 5. Components Overview
 
-| Component      | Role                             |
-| -------------- | -------------------------------- |
-| Ollama         | Local inference engine           |
-| Open WebUI     | Human interaction UI (port 8080) |
-| LAN AI Gateway | Authenticated API (port 7000)    |
-| SQLite (WAL)   | Users, logs, audit               |
-| systemd        | Auto-start, auto-heal            |
+| Component      | Role                                             |
+| -------------- | ------------------------------------------------ |
+| Ollama         | Local inference engine (multi-model, offline)    |
+| Open WebUI     | Optional human UI (port 8080)                    |
+| LAN AI Gateway | Authenticated API & governance layer (port 7000) |
+| SQLite (WAL)   | Users, logs, audit storage                       |
+| systemd        | Auto-start, auto-heal                            |
 
 ---
 
 ## 6. What This Gateway Adds
 
-| Capability         | Ollama | Gateway |
-| ------------------ | ------ | ------- |
-| LAN API            | No     | Yes     |
-| Authentication     | No     | Yes     |
-| Per-user isolation | No     | Yes     |
-| Rate limiting      | No     | Yes     |
-| Prompt logging     | No     | Yes     |
-| Response logging   | No     | Yes     |
-| CSV audit export   | No     | Yes     |
+| Capability         | Ollama Native | Gateway |
+| ------------------ | ------------- | ------- |
+| LAN API            | No            | Yes     |
+| Authentication     | No            | Yes     |
+| Per-user isolation | No            | Yes     |
+| Rate limiting      | No            | Yes     |
+| Prompt logging     | No            | Yes     |
+| Response logging   | No            | Yes     |
+| CSV audit export   | No            | Yes     |
+| Automation-safe    | Limited       | Yes     |
 
 ---
 
 ## 7. Control Plane & User Access (Gateway UI)
 
-The gateway includes a **minimal control plane** for governance and security.
-It does **not** perform inference.
+The gateway includes a **minimal control plane** focused on governance and security.
+It does **not perform inference**.
 
 ### User Dashboard
 
@@ -139,7 +155,7 @@ It does **not** perform inference.
 
 Users can:
 
-* Register with email
+* Register using email
 * Reset password (if known)
 * Await admin approval
 
@@ -151,10 +167,10 @@ Users can:
 
 Admin can:
 
-* Approve / disable users
+* Approve or disable users
 * Reset user passwords to `admin123`
 * Export per-user audit logs (CSV)
-* Delete users (export enforced)
+* Permanently delete users (export enforced)
 * Change admin password
 
 ---
@@ -173,19 +189,20 @@ Example:
 http://192.168.1.2:7000
 ```
 
-### Default Admin
+### Default Admin Account
 
 * Username: `admin`
 * Password: `admin123`
-* Mandatory password change on first login
+* **Mandatory password change after first login**
 
 ---
 
 ## 9. Rate Limiting
 
 * Default: **10 requests per minute per user**
-* Enforced at gateway
-* Protects inference host from overload
+* Enforced at the gateway
+* Applies to scripts, automation, and pipelines
+* Prevents runaway workloads
 
 HTTP `429` is returned if exceeded.
 
@@ -193,7 +210,7 @@ HTTP `429` is returned if exceeded.
 
 ## 10. API Endpoints
 
-### Health
+### Health Check
 
 ```
 GET /health
@@ -207,7 +224,7 @@ POST /chat
 
 ---
 
-## 11. Request Format (Required Auth)
+## 11. Request Format (Authentication Required)
 
 ```json
 {
@@ -232,7 +249,7 @@ POST /chat
 curl http://192.168.1.2:7000/chat \
 -H "Content-Type: application/json" \
 -d '{
-  "auth": {"username":"user@company.com","password":"password"},
+  "auth":{"username":"user@company.com","password":"password"},
   "messages":[{"role":"user","content":"Explain MQTT"}]
 }'
 ```
@@ -252,38 +269,110 @@ Invoke-RestMethod `
 
 ---
 
-## 13. Logging & Audit
+## 13. Logging, Audit & Compliance
 
-* Logs prompt, response, user, timestamp
-* Stored in SQLite (WAL)
-* CSV export required before deletion
-* Suitable for audits, debugging, research validation
+* Logs:
+
+  * User
+  * Prompt
+  * Model response
+  * Timestamp
+* Stored in SQLite (WAL mode)
+* Per-user CSV export supported
+* Export required before deletion
+
+Suitable for:
+
+* Research validation
+* Automation debugging
+* Incident investigation
+* Compliance review
 
 ---
 
 ## 14. Installation & Rollback
 
-* Install script sets up `/opt` isolated service
-* Rollback removes gateway only
-* Ollama and Open WebUI unaffected
+* Install script:
+
+  * Creates isolated environment under `/opt`
+  * Sets up database and systemd service
+* Rollback script:
+
+  * Removes gateway only
+  * Ollama and Open WebUI remain untouched
 
 ---
 
-## 15. Roadmap
+## 15. Project Versioning & Evolution
 
-Planned updates:
+This project has evolved in **intentional phases**, each solving a specific problem.
+
+| Version  | Focus                                  | Status    |
+| -------- | -------------------------------------- | --------- |
+| **v1.0** | Headless API gateway (PoC)             | Completed |
+| **v2.x** | Auth, UI, audit, rate limiting         | Current   |
+| **v3.x** | Hybrid local + cloud LLM control plane | Planned   |
+
+### v1.0 – Headless Gateway
+
+* Validated API design
+* Automation safety
+* No UI, no auth
+* Used for internal proof-of-concept
+
+### v2.x – Governance Layer (Current)
+
+* User authentication
+* Admin control plane
+* Rate limiting
+* Audit logging
+* Production stability
+
+### v3.x – Hybrid Local + Cloud (Planned)
+
+* Unified access to:
+
+  * Local LLMs (Ollama)
+  * Cloud APIs (OpenAI, Claude, Gemini)
+* Server-side API key management
+* Per-user usage visibility
+* Cost and governance controls
+
+---
+
+## 16. Cloud & Hybrid Capability (Planned)
+
+The gateway is architecturally designed to support **cloud LLM APIs** without exposing raw credentials.
+
+Planned capabilities:
+
+* Provider routing per request
+* Centralized API key storage
+* Unified auth, logging, rate limits
+* Safe internal sharing of paid accounts
+* Hybrid local + cloud workloads
+
+---
+
+## 17. Roadmap
+
+Planned enhancements:
 
 1. Admin-editable per-user rate limits
-2. Model discovery API via gateway
+2. Authenticated model discovery API
+3. Hybrid provider routing
+4. Usage metrics & observability dashboard
 
 ---
 
-## 16. Final Notes
+## 18. Final Notes
 
 This is not a cloud LLM platform.
 It is not a UI replacement.
 
-It is a **focused, lightweight solution** to safely expose local LLMs for automation, auditing, and team use.
+It is a **focused, lightweight LLM control plane** designed to safely expose inference capabilities to humans and automation.
 
 Built because it was needed.
 Shared because others face the same problem.
+
+---

@@ -1,4 +1,3 @@
-
 <img width="1505" height="467" alt="Banner" src="https://github.com/user-attachments/assets/05fae78d-d46c-4a22-b706-20ce77d6fb74" />
 
 ---
@@ -15,45 +14,47 @@
 ![Rate Limit](https://img.shields.io/badge/rate--limit-enabled-yellow)
 ![Audit Logs](https://img.shields.io/badge/audit-logged-blueviolet)
 
+---
+
 ## 1. Why This Project Exists
 
-This project was built to solve a **real, in-house operational problem** encountered while working with AI/ML, Computer Vision, DevOps automation, and research workflows.
+This project was built to solve a **real in-house operational problem** encountered while working with AI/ML, Computer Vision, DevOps automation, and research workflows.
 
-Our teams were increasingly using:
+Teams were increasingly using:
 
-* Free-tier cloud LLM APIs (privacy, cost, and rate-limit constraints)
-* Local LLMs via Ollama for offline experimentation and validation
-* Open WebUI for human interaction
-* Automation tools (n8n, Python scripts, CI jobs) that **cannot safely rely on GUIs**
+- Free-tier cloud LLM APIs (privacy, cost, rate limits)
+- Local LLMs via Ollama for offline validation
+- Open WebUI for human interaction
+- Automation tools (n8n, scripts, CI jobs) that **cannot safely rely on GUIs**
 
-While Ollama is excellent as a local inference engine, it is **not designed** for:
+While Ollama is an excellent local inference engine, it is **not designed** for:
 
-* Multi-user access
-* Authentication
-* Rate limiting
-* Audit logging
-* Automation safety
+- Multi-user access
+- Authentication
+- Rate limiting
+- Audit logging
+- Automation safety
 
-At one point, a single automation script overwhelmed the local inference system, affecting other users and pipelines. There was **no visibility** into who sent what, when, or why.
+At one point, a single automation pipeline overwhelmed the local inference system, impacting other users. There was **no visibility** into who sent what, when, or why.
 
 This gateway was built as a **lightweight, production-safe middleware** to:
 
-* Protect the core inference engine
-* Isolate users
-* Enable automation
-* Provide auditability
-* Maintain privacy and offline operation
+- Protect the inference host
+- Isolate users
+- Enable automation
+- Provide auditability
+- Preserve privacy and offline operation
 
 ---
 
 ## 2. Design Philosophy
 
-* Ollama remains **localhost-only**
-* Users never access the real inference API directly
-* All access is authenticated and logged
-* Rate limits protect system stability
-* Minimal footprint, no system pollution
-* Automation-first, UI-optional
+- Ollama remains **localhost-only**
+- Users never access the inference API directly
+- All access is authenticated and logged
+- Rate limits protect system stability
+- Minimal footprint, no system pollution
+- Automation-first, UI-optional
 
 ---
 
@@ -72,8 +73,8 @@ flowchart LR
 
     subgraph LAN["LAN / Team / Automation"]
         USERS["Human Users"]
-        SCRIPTS["Scripts (Python / Bash / PowerShell)"]
-        N8N["n8n Workflows"]
+        SCRIPTS["Scripts"]
+        N8N["n8n"]
         PIPE["AI / ML / CV Pipelines"]
     end
 
@@ -81,21 +82,20 @@ flowchart LR
     SCRIPTS -->|HTTP| GATEWAY
     N8N -->|HTTP| GATEWAY
     PIPE -->|HTTP| GATEWAY
-```
+````
 
 ---
 
 ## 4. Core Security Boundary (Important)
 
-> **The gateway must be installed on the same machine where Ollama is running.**
+**The gateway must run on the same machine as Ollama.**
 
-* The gateway communicates with Ollama only via:
+* Ollama listens only on:
 
   ```
   http://127.0.0.1:11434
   ```
-* Ollama must never be exposed over LAN
-* Users cannot bypass authentication or rate limits
+* Ollama is never exposed over LAN
 * All external access is mediated by the gateway
 
 This boundary is intentional and enforced.
@@ -104,32 +104,62 @@ This boundary is intentional and enforced.
 
 ## 5. Components Overview
 
-| Component      | Role                                         |
-| -------------- | -------------------------------------------- |
-| Ollama         | Local inference engine, multi-model, offline |
-| Open WebUI     | Optional human UI (port 8080)                |
-| LAN AI Gateway | Authenticated, audited API (port 7000)       |
-| SQLite (WAL)   | User, logs, audit storage                    |
-| systemd        | Auto-start, auto-heal                        |
+| Component      | Role                             |
+| -------------- | -------------------------------- |
+| Ollama         | Local inference engine           |
+| Open WebUI     | Human interaction UI (port 8080) |
+| LAN AI Gateway | Authenticated API (port 7000)    |
+| SQLite (WAL)   | Users, logs, audit               |
+| systemd        | Auto-start, auto-heal            |
 
 ---
 
 ## 6. What This Gateway Adds
 
-| Capability         | Ollama Native | Gateway |
-| ------------------ | ------------- | ------- |
-| LAN API            | No            | Yes     |
-| Authentication     | No            | Yes     |
-| Per-user isolation | No            | Yes     |
-| Rate limiting      | No            | Yes     |
-| Prompt logging     | No            | Yes     |
-| Response logging   | No            | Yes     |
-| CSV audit export   | No            | Yes     |
-| Automation-safe    | Limited       | Yes     |
+| Capability         | Ollama | Gateway |
+| ------------------ | ------ | ------- |
+| LAN API            | No     | Yes     |
+| Authentication     | No     | Yes     |
+| Per-user isolation | No     | Yes     |
+| Rate limiting      | No     | Yes     |
+| Prompt logging     | No     | Yes     |
+| Response logging   | No     | Yes     |
+| CSV audit export   | No     | Yes     |
 
 ---
 
-## 7. Access & User Management
+## 7. Control Plane & User Access (Gateway UI)
+
+The gateway includes a **minimal control plane** for governance and security.
+It does **not** perform inference.
+
+### User Dashboard
+
+<img width="1874" height="374" alt="Main-dashboard" src="https://github.com/user-attachments/assets/b771d35d-b49c-42b0-9f4e-8c725d1bc70f" />
+
+Users can:
+
+* Register with email
+* Reset password (if known)
+* Await admin approval
+
+---
+
+### Admin Panel
+
+<img width="1897" height="580" alt="admin-pannel" src="https://github.com/user-attachments/assets/a4bf0275-f87e-4f86-a696-bbe898c121db" />
+
+Admin can:
+
+* Approve / disable users
+* Reset user passwords to `admin123`
+* Export per-user audit logs (CSV)
+* Delete users (export enforced)
+* Change admin password
+
+---
+
+## 8. Access & User Management
 
 ### Base URL
 
@@ -140,94 +170,50 @@ http://<HOST_IP>:7000
 Example:
 
 ```
-http://10.1.45.69:7000
+http://192.168.1.2:7000
 ```
 
----
+### Default Admin
 
-### Default Admin Account
-
-* **Username:** `admin`
-* **Password:** `admin123`
-
-**Mandatory:**
-Admin must change this password after first login.
+* Username: `admin`
+* Password: `admin123`
+* Mandatory password change on first login
 
 ---
 
-### User Registration Flow
-
-1. User visits the gateway URL
-2. Registers using email and password
-3. User status defaults to **pending**
-4. Admin approves the user from admin dashboard
-5. User gains API access
-
----
-
-### Password Management
-
-* Users can:
-
-  * Reset password if they know the current password
-* Admin can:
-
-  * Reset any user password to `admin123`
-  * Disable or revoke access instantly
-  * Export user logs (CSV)
-  * Permanently delete users (after audit export)
-
----
-
-## 8. Rate Limiting
+## 9. Rate Limiting
 
 * Default: **10 requests per minute per user**
-* Enforced at the gateway
-* Prevents runaway scripts and system overload
-* Applies equally to:
+* Enforced at gateway
+* Protects inference host from overload
 
-  * Scripts
-  * Automation tools
-  * CI pipelines
-
-**Meaning:**
-If more than 10 `/chat` requests are sent within one minute, further requests are rejected with HTTP `429`.
+HTTP `429` is returned if exceeded.
 
 ---
 
-## 9. API Endpoints
+## 10. API Endpoints
 
-### Health Check
+### Health
 
-```http
+```
 GET /health
 ```
 
-Response:
+### Inference
 
-```json
-{ "status": "ok" }
 ```
-
----
-
-### Core Inference API
-
-```http
 POST /chat
 ```
 
 ---
 
-## 10. Request Format (Authentication Required)
-
-Every request **must include authentication**:
+## 11. Request Format (Required Auth)
 
 ```json
 {
   "auth": {
     "username": "user@company.com",
-    "password": "your_password"
+    "password": "password"
   },
   "model": "llama3.2:latest",
   "messages": [
@@ -238,172 +224,66 @@ Every request **must include authentication**:
 
 ---
 
-## 11. Usage Examples
+## 12. Usage Examples
 
-### Linux / macOS (Terminal)
+### Linux / macOS
 
 ```bash
-curl http://10.1.45.69:7000/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "auth": {
-      "username": "user@company.com",
-      "password": "password"
-    },
-    "messages": [
-      {"role": "user", "content": "Explain MQTT in one sentence"}
-    ]
-  }'
+curl http://192.168.1.2:7000/chat \
+-H "Content-Type: application/json" \
+-d '{
+  "auth": {"username":"user@company.com","password":"password"},
+  "messages":[{"role":"user","content":"Explain MQTT"}]
+}'
 ```
 
----
-
-### Windows (PowerShell)
+### Windows PowerShell
 
 ```powershell
 Invoke-RestMethod `
-  -Uri "http://10.1.45.69:7000/chat" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body '{
-    "auth": {
-      "username": "user@company.com",
-      "password": "password"
-    },
-    "messages": [
-      {"role": "user", "content": "Explain MQTT in one sentence"}
-    ]
-  }'
+ -Uri "http://192.168.1.2:7000/chat" `
+ -Method Post `
+ -ContentType "application/json" `
+ -Body '{
+   "auth":{"username":"user@company.com","password":"password"},
+   "messages":[{"role":"user","content":"Explain MQTT"}]
+ }'
 ```
 
 ---
 
-### Windows (CMD)
+## 13. Logging & Audit
 
-```cmd
-curl http://10.1.45.69:7000/chat ^
- -H "Content-Type: application/json" ^
- -d "{\"auth\":{\"username\":\"user@company.com\",\"password\":\"password\"},\"messages\":[{\"role\":\"user\",\"content\":\"Explain MQTT\"}]}"
-```
-
----
-
-## 12. Response Format
-
-Model output is always returned as:
-
-```json
-.message.content
-```
-
-Example:
-
-```json
-{
-  "message": {
-    "role": "assistant",
-    "content": "MQTT is a lightweight publish-subscribe messaging protocol..."
-  }
-}
-```
+* Logs prompt, response, user, timestamp
+* Stored in SQLite (WAL)
+* CSV export required before deletion
+* Suitable for audits, debugging, research validation
 
 ---
 
-## 13. Model Selection (Current Process)
+## 14. Installation & Rollback
 
-At present, model availability is:
-
-* Managed centrally on the inference host
-* Visible via **Open WebUI (port 8080)** for quick inspection
-* Communicated by the admin to users
-
-Users select models by name in the `/chat` request.
-
-Example:
-
-```json
-"model": "qwen2.5:14b"
-```
+* Install script sets up `/opt` isolated service
+* Rollback removes gateway only
+* Ollama and Open WebUI unaffected
 
 ---
 
-## 14. Automation & Pipelines
+## 15. Roadmap
 
-### Python Example
+Planned updates:
 
-```python
-import requests, json
-
-payload = {
-    "auth": {"username":"user@company.com","password":"password"},
-    "model":"llama3.2:latest",
-    "messages":[{"role":"user","content":"Is CPU usage 95% critical?"}]
-}
-
-r = requests.post("http://10.1.45.69:7000/chat", json=payload, timeout=180)
-print(r.json()["message"]["content"])
-```
+1. Admin-editable per-user rate limits
+2. Model discovery API via gateway
 
 ---
 
-## 15. Logging, Audit & Compliance
+## 16. Final Notes
 
-* Each request logs:
+This is not a cloud LLM platform.
+It is not a UI replacement.
 
-  * User ID
-  * Prompt
-  * Model response
-  * Timestamp
-* Stored in SQLite (WAL mode)
-* Per-user CSV export supported
-* Required before user deletion
-* Useful for:
-
-  * Research validation
-  * Incident investigation
-  * Automation debugging
-  * Compliance review
-
----
-
-## 16. Installation & Rollback
-
-* Install script:
-
-  * Creates isolated environment under `/opt`
-  * Sets up database and systemd service
-* Rollback script:
-
-  * Removes gateway cleanly
-  * Does not affect Ollama or other services
-
----
-
-## 17. Roadmap / Upcoming Enhancements
-
-The following features are planned and will be pushed as patches:
-
-1. **Per-user rate limit management from admin dashboard**
-2. **Authenticated model discovery via gateway API**
-
-Until then:
-
-* Rate limit is safely hard-coded to 10 req/min
-* Model list is shared by admin or viewed via Open WebUI
-
----
-
-## 18. Final Notes
-
-This gateway is not a replacement for Open WebUI.
-It is not a cloud LLM platform.
-
-It is a **precise, lightweight solution** to a common operational gap:
-secure, auditable, automation-friendly access to local LLMs.
+It is a **focused, lightweight solution** to safely expose local LLMs for automation, auditing, and team use.
 
 Built because it was needed.
 Shared because others face the same problem.
-
----
-
-

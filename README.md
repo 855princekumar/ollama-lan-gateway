@@ -43,7 +43,7 @@ There was **no visibility** into:
 - How frequently the system was being used
 - Whether misuse or misconfiguration occurred
 
-The system recovered—but the problem was clear.
+The system recovered-but the problem was clear.
 
 This gateway was built as a **lightweight, production-safe control layer** to:
 
